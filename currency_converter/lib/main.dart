@@ -25,7 +25,7 @@ class _MyAppState extends State<MyApp> {
   String? _fromCurrency = 'TWD';
   String? _toCurrency = 'JPY';
   // 控制文字輸入框以獲取使用者輸入
-  TextEditingController _amountController = TextEditingController();
+  final TextEditingController _amountController = TextEditingController();
 
   // 匯率清單
   final List<String> currencies = ['TWD', 'USD', 'JPY', 'EUR', 'GBP', 'AUD'];
