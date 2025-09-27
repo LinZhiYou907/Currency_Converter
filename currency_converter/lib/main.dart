@@ -14,21 +14,23 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  // Stores the converted amount to be displayed on the screen.
+  // 儲存轉換後的金額，並在介面上顯示
   String _convertedAmount = '0.0';
-  // Stores the exchange rate data fetched from the API.
+  // 增加錯誤提示
+  String _errorMessage = '';
+  // 儲存從 API 取得的匯率資料
   Map<String, dynamic> _rates = {};
 
-  // Stores the selected currencies from the dropdown menus.
+  // 儲存下拉式選單的選擇值
   String? _fromCurrency = 'TWD';
   String? _toCurrency = 'JPY';
-  // Controls the text field to get the user's input.
+  // 控制文字輸入框以獲取使用者輸入
   TextEditingController _amountController = TextEditingController();
 
-  // A list of currencies for the dropdown menus.
+  // 匯率清單
   final List<String> currencies = ['TWD', 'USD', 'JPY', 'EUR', 'GBP', 'AUD'];
 
-  // A function to fetch exchange rates from the API.
+  // 獲取匯率的非同步函式
   Future<Map<String, dynamic>> getExchangeRates(String baseCurrency) async {
     final apiKey = '91e2b0abe3ab0afd743b1050';
     final baseUrl =
@@ -44,11 +46,43 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+  // 轉換邏輯
+  void convertCurrency() async {
+    // 清除錯誤訊息
+    setState(() {
+      _errorMessage = '';
+    });
+
+    try {
+      final data = await getExchangeRates(_fromCurrency!);
+
+      final rates = data['conversion_rates'];
+      if (rates != null && rates[_toCurrency] != null) {
+        final toRate = rates[_toCurrency];
+        final inputAmount = double.tryParse(_amountController.text) ?? 0.0;
+        final convertedAmount = inputAmount * toRate;
+
+        setState(() {
+          _convertedAmount = convertedAmount.toStringAsFixed(2);
+          _rates = rates;
+        });
+      } else {
+        setState(() {
+          _errorMessage = '選択した通貨のレートが見つかりません';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'インターネット問題が発生しました';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(title: const Text('通貨換算ツール')),
+        appBar: AppBar(title: const Text('通貨換算アプリ')),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -60,8 +94,20 @@ class _MyAppState extends State<MyApp> {
                   border: OutlineInputBorder(),
                   labelText: '金額を入力してください',
                 ),
+                onChanged: (text) {
+                  convertCurrency(); // 添加這個功能就可以輸入數字馬上得到結果
+                },
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10), // 增加錯誤訊息的間距
+              if (_errorMessage.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10.0),
+                  child: Text(
+                    _errorMessage,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              const SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
@@ -78,6 +124,7 @@ class _MyAppState extends State<MyApp> {
                     onChanged: (String? newValue) {
                       setState(() {
                         _fromCurrency = newValue;
+                        convertCurrency();
                       });
                     },
                   ),
@@ -95,6 +142,7 @@ class _MyAppState extends State<MyApp> {
                     onChanged: (String? newValue) {
                       setState(() {
                         _toCurrency = newValue;
+                        convertCurrency();
                       });
                     },
                   ),
@@ -102,27 +150,8 @@ class _MyAppState extends State<MyApp> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () async {
-                  try {
-                    final data = await getExchangeRates(_fromCurrency!);
-
-                    final rates = data['conversion_rates'];
-                    if (rates != null && rates[_toCurrency] != null) {
-                      final toRate = rates[_toCurrency];
-                      final inputAmount =
-                          double.tryParse(_amountController.text) ?? 0.0;
-                      final convertedAmount = inputAmount * toRate;
-
-                      setState(() {
-                        _convertedAmount = convertedAmount.toStringAsFixed(2);
-                        _rates = rates;
-                      });
-                    } else {
-                      print('選択した通貨のレートが見つかりません');
-                    }
-                  } catch (e) {
-                    print('エラー: $e');
-                  }
+                onPressed: () {
+                  convertCurrency();
                 },
                 child: const Text('換算'),
               ),
