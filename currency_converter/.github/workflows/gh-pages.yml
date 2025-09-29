@@ -1,0 +1,30 @@
+name: Deploy to GitHub Pages # 這個工作流程的名稱，將顯示在 GitHub Actions 頁面上。
+
+on: # 設定觸發工作流程的條件。
+  push: # 當有程式碼被推送到倉庫時觸發。
+    branches: # 指定只在哪些分支發生 push 時才觸發。
+      - main # 只有當 push 到 'main' 分支時，才執行此部署流程。
+
+jobs: # 定義一個或多個工作（Job）。
+  build_and_deploy: # 定義一個名為 'build_and_deploy' 的部署工作。
+    runs-on: ubuntu-latest # 指定執行此工作的環境，這裡使用最新的 Ubuntu Linux 虛擬機。
+    steps: # 定義工作中的一系列執行步驟。
+      - name: Checkout # 步驟名稱：取得程式碼。
+        uses: actions/checkout@v4 # 使用 actions/checkout@v4 Actions 來下載倉庫的程式碼到虛擬機中。
+
+      - name: Setup Flutter # 步驟名稱：設定 Flutter 環境。
+        uses: subosito/flutter-action@v2 # 使用 subosito/flutter-action Actions 來安裝 Flutter SDK。
+        with:
+          flutter-version: "3.19.2" # 指定要安裝的 Flutter 版本，這裡建議與你本地使用的版本一致。
+
+      - name: Get dependencies # 步驟名稱：安裝專案依賴套件。
+        run: flutter pub get # 執行 Flutter 指令，下載 pubspec.yaml 中列出的所有套件。
+
+      - name: Build web # 步驟名稱：建構 Web 版本應用程式。
+        run: flutter build web --release # 執行 Flutter 指令，將應用程式編譯成發布（優化）的 Web 靜態檔案，結果會放在 build/web/。
+
+      - name: Deploy to GitHub Pages # 步驟名稱：部署到 GitHub Pages。
+        uses: peaceiris/actions-gh-pages@v3 # 使用 peaceiris/actions-gh-pages Actions 來處理部署邏輯。
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }} # 提供 GitHub 令牌，用於授權 Actions 將檔案發布到 Pages。
+          publish_dir: ./build/web # 指定要發布的資料夾。這裡指向前面 build web 步驟產生的靜態檔案目錄。
